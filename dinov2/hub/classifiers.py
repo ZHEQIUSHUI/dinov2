@@ -16,7 +16,7 @@ class Weights(Enum):
     IMAGENET1K = "IMAGENET1K"
 
 
-def _make_dinov2_linear_head(
+def _make_dinov2_linear_classification_head(
     *,
     model_name: str = "dinov2_vitl14",
     embed_dim: int = 1024,
@@ -28,7 +28,7 @@ def _make_dinov2_linear_head(
     if layers not in (1, 4):
         raise AssertionError(f"Unsupported number of layers: {layers}")
     if weights not in (weights.value for weights in Weights):
-        raise AssertionError(f"unsupported weights: {weights}")
+        raise AssertionError(f"Unsupported weights: {weights}")
 
     linear_head = nn.Linear((1 + layers) * embed_dim, 1_000)
 
@@ -88,8 +88,11 @@ def _make_dinov2_linear_classifier(
     embed_dim = backbone.embed_dim
     patch_size = backbone.patch_size
     model_name = _make_dinov2_model_name(arch_name, patch_size)
-    linear_head = _make_dinov2_linear_head(
-        model_name=model_name, embed_dim=embed_dim, layers=layers, pretrained=pretrained
+    linear_head = _make_dinov2_linear_classification_head(
+        model_name=model_name,
+        embed_dim=embed_dim,
+        layers=layers,
+        pretrained=pretrained,
     )
 
     return _LinearClassifierWrapper(backbone=backbone, linear_head=linear_head, layers=layers)
