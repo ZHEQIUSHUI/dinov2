@@ -16,6 +16,12 @@ from dinov2.hub.classifiers import (
     dinov2_vitl14_lc,
     dinov2_vits14_lc,
 )
+from dinov2.hub.depthers import (
+    dinov2_vitb14_ld,
+    dinov2_vitg14_ld,
+    dinov2_vitl14_ld,
+    dinov2_vits14_ld,
+)
 
 
 dependencies = ["torch"]
