@@ -16,9 +16,9 @@ import torch
 import torch.nn as nn
 import torch.utils.checkpoint
 from torch.nn.init import trunc_normal_
-
+import torch.nn.functional as F
 from dinov2.layers import Mlp, PatchEmbed, SwiGLUFFNFused, MemEffAttention, NestedTensorBlock as Block
-
+from dinov2.layers.attention import Attention
 
 logger = logging.getLogger("dinov2")
 
@@ -177,11 +177,28 @@ class DinoVisionTransformer(nn.Module):
         # see discussion at https://github.com/facebookresearch/dino/issues/8
         w0, h0 = w0 + 0.1, h0 + 0.1
 
-        patch_pos_embed = nn.functional.interpolate(
-            patch_pos_embed.reshape(1, int(math.sqrt(N)), int(math.sqrt(N)), dim).permute(0, 3, 1, 2),
-            scale_factor=(w0 / math.sqrt(N), h0 / math.sqrt(N)),
-            mode="bicubic",
-        )
+        if torch.onnx.is_in_onnx_export():
+            aa = patch_pos_embed.reshape(
+                    1,  
+                    int(math.sqrt(N)), 
+                    int(math.sqrt(N)), 
+                    dim 
+                ).permute(0, 3, 1, 2)
+            bb = (w0 / math.sqrt(N), h0 / math.sqrt(N))
+            cc = bb
+            if True and isinstance(bb[0], torch.Tensor):
+                cc = (bb[0].item(), bb[1].item()) # **** 1.make cc from tuple(tensor[float], tensor(float)) to tuple(float, float)
+            patch_pos_embed = nn.functional.interpolate(
+                aa,
+                scale_factor=cc,
+                mode="bilinear" #"bicubic", # **** 2.if this not change, will cause runtime exception when using onnx model
+            )
+        else:
+            patch_pos_embed = F.interpolate(
+                patch_pos_embed.reshape(1, int(math.sqrt(N)), int(math.sqrt(N)), dim).permute(0, 3, 1, 2),
+                scale_factor=(w0 / math.sqrt(N), h0 / math.sqrt(N)),
+                mode="bicubic",
+            )
 
         assert int(w0) == patch_pos_embed.shape[-2] and int(h0) == patch_pos_embed.shape[-1]
         patch_pos_embed = patch_pos_embed.permute(0, 2, 3, 1).view(1, -1, dim)
