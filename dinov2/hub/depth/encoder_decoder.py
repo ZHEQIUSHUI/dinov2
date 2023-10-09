@@ -51,17 +51,18 @@ class DepthEncoderDecoder(nn.Module):
     def encode_decode(self, img, img_metas, rescale=True, size=None):
         """Encode images with backbone and decode into a depth estimation
         map of the same size as input."""
+        b,c,h,w = img.shape
         x = self.extract_feat(img)
         out = self._decode_head_forward_test(x, img_metas)
         # crop the pred depth to the certain range.
-        out = torch.clamp(out, min=self.decode_head.min_depth, max=self.decode_head.max_depth)
-        if rescale:
-            if size is None:
-                if img_metas is not None:
-                    size = img_metas[0]["ori_shape"][:2]
-                else:
-                    size = img.shape[2:]
-            out = resize(input=out, size=size, mode="bilinear", align_corners=self.align_corners)
+        # out = torch.clamp(out, min=self.decode_head.min_depth, max=self.decode_head.max_depth)
+        # if rescale:
+        #     if size is None:
+        #         if img_metas is not None:
+        #             size = img_metas[0]["ori_shape"][:2]
+        #         else:
+        #             size = img.shape[2:]
+        out = resize(input=out, size=(h,w), mode="bilinear", align_corners=self.align_corners)
         return out
 
     def _decode_head_forward_train(self, img, x, img_metas, depth_gt, **kwargs):
@@ -246,7 +247,7 @@ class DepthEncoderDecoder(nn.Module):
         else:
             return self.aug_test(imgs, img_metas, **kwargs)
 
-    def forward(self, img, img_metas, return_loss=True, **kwargs):
+    def forward(self, img, return_loss=True, **kwargs):
         """Calls either :func:`forward_train` or :func:`forward_test` depending
         on whether ``return_loss`` is ``True``.
 
@@ -256,10 +257,7 @@ class DepthEncoderDecoder(nn.Module):
         should be double nested (i.e.  List[Tensor], List[List[dict]]), with
         the outer list indicating test time augmentations.
         """
-        if return_loss:
-            return self.forward_train(img, img_metas, **kwargs)
-        else:
-            return self.forward_test(img, img_metas, **kwargs)
+        return self.encode_decode(img,None)
 
     def train_step(self, data_batch, optimizer, **kwargs):
         """The iteration step during training.

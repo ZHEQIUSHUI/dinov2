@@ -168,7 +168,8 @@ class DepthBaseDecodeHead(nn.Module):
                 logit = torch.sigmoid(logit)
                 logit = logit / logit.sum(dim=1, keepdim=True)
 
-            output = torch.einsum("ikmn,k->imn", [logit, bins]).unsqueeze(dim=1)
+            # output = torch.einsum("ikmn,k->imn", [logit, bins]).unsqueeze(dim=1)
+            output = (torch.matmul(torch.permute(logit,[0,2,3,1]),bins.unsqueeze(-1))).unsqueeze(dim=1).squeeze(-1)
 
         else:
             if self.scale_up:

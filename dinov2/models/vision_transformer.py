@@ -182,7 +182,7 @@ class DinoVisionTransformer(nn.Module):
         patch_pos_embed = nn.functional.interpolate(
             patch_pos_embed.reshape(1, int(sqrt_N), int(sqrt_N), dim).permute(0, 3, 1, 2),
             scale_factor=(sx, sy),
-            mode="bicubic",
+            mode="bilinear",
         )
 
         assert int(w0) == patch_pos_embed.shape[-2]
